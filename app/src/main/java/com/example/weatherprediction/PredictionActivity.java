@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -28,7 +29,7 @@ public class PredictionActivity extends AppCompatActivity {
     private TextView predConditionText;
     private LinearLayout multiDayContainer;
     private Button viewChartsButton;
-    private android.widget.ImageButton btnBackArrow;
+    private ImageButton btnBackArrow;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -121,20 +122,12 @@ public class PredictionActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        viewChartsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(PredictionActivity.this, DetailsActivity.class);
-                intent.putExtra(DetailsActivity.EXTRA_CITY, selectedCity);
-                startActivity(intent);
-            }
+        viewChartsButton.setOnClickListener(v -> {
+            Intent intent = new Intent(PredictionActivity.this, DetailsActivity.class);
+            intent.putExtra(DetailsActivity.EXTRA_CITY, selectedCity);
+            startActivity(intent);
         });
 
-        btnBackArrow.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
+        btnBackArrow.setOnClickListener(v -> finish());
     }
 }

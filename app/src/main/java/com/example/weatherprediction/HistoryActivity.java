@@ -1,6 +1,7 @@
 package com.example.weatherprediction;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -9,11 +10,12 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import com.example.weatherprediction.data.AppDatabase;
 import com.example.weatherprediction.data.WeatherDao;
 import com.example.weatherprediction.data.WeatherRecord;
@@ -26,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 public class HistoryActivity extends AppCompatActivity {
 
@@ -36,7 +39,7 @@ public class HistoryActivity extends AppCompatActivity {
     private Button clearHistoryButton;
     private Button btnExportCsv;
     private AutoCompleteTextView historySearchInput;
-    private android.widget.ImageButton btnBackArrow;
+    private ImageButton btnBackArrow;
 
     private List<WeatherRecord> allRecordsList = new ArrayList<>();
 
@@ -70,20 +73,10 @@ public class HistoryActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        clearHistoryButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                clearHistory();
-            }
-        });
+        clearHistoryButton.setOnClickListener(v -> clearHistory());
 
         if (btnExportCsv != null) {
-            btnExportCsv.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    exportHistoryToCsv();
-                }
-            });
+            btnExportCsv.setOnClickListener(v -> exportHistoryToCsv());
         }
 
         if (historySearchInput != null) {
@@ -101,12 +94,7 @@ public class HistoryActivity extends AppCompatActivity {
             });
         }
 
-        btnBackArrow.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
+        btnBackArrow.setOnClickListener(v -> finish());
     }
 
     private void filterHistory(String query) {
@@ -126,78 +114,74 @@ public class HistoryActivity extends AppCompatActivity {
     }
 
     private void exportHistoryToCsv() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                final List<WeatherRecord> records = weatherDao.getAllRecords();
-                if (records == null || records.isEmpty()) {
-                    runOnUiThread(() -> Toast.makeText(HistoryActivity.this, "No history records to export", Toast.LENGTH_SHORT).show());
-                    return;
+        new Thread(() -> {
+            final List<WeatherRecord> records = weatherDao.getAllRecords();
+            if (records == null || records.isEmpty()) {
+                runOnUiThread(() -> Toast.makeText(HistoryActivity.this, "No history records to export", Toast.LENGTH_SHORT).show());
+                return;
+            }
+
+            try {
+                StringBuilder csvBuilder = new StringBuilder();
+                csvBuilder.append("City,Timestamp,Temperature_C,Humidity_%,Precipitation_Prob_%,Predicted_Temp_C\n");
+
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                for (WeatherRecord rec : records) {
+                    csvBuilder.append(String.format(Locale.getDefault(),
+                            "\"%s\",\"%s\",%.1f,%.1f,%d,%.1f\n",
+                            rec.getCity(),
+                            sdf.format(new Date(rec.getTimestamp())),
+                            rec.getTemperature(),
+                            rec.getHumidity(),
+                            rec.getPrecipitation() > 1.0 ? (int) Math.round(rec.getPrecipitation()) : (int) Math.round(rec.getPrecipitation() * 100),
+                            rec.getPredictedTemperature()));
                 }
 
-                try {
-                    StringBuilder csvBuilder = new StringBuilder();
-                    csvBuilder.append("City,Timestamp,Temperature_C,Humidity_%,Precipitation_Prob_%,Predicted_Temp_C\n");
-
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-                    for (WeatherRecord rec : records) {
-                        csvBuilder.append(String.format(Locale.getDefault(),
-                                "\"%s\",\"%s\",%.1f,%.1f,%d,%.1f\n",
-                                rec.getCity(),
-                                sdf.format(new Date(rec.getTimestamp())),
-                                rec.getTemperature(),
-                                rec.getHumidity(),
-                                rec.getPrecipitation() > 1.0 ? (int) Math.round(rec.getPrecipitation()) : (int) Math.round(rec.getPrecipitation() * 100),
-                                rec.getPredictedTemperature()));
+                File cachePath = new File(getCacheDir(), "csv");
+                if (!cachePath.exists()) {
+                    boolean created = cachePath.mkdirs();
+                    if (!created) {
+                        runOnUiThread(() -> Toast.makeText(HistoryActivity.this, "Failed to create CSV cache directory", Toast.LENGTH_SHORT).show());
+                        return;
                     }
-
-                    File cachePath = new File(getCacheDir(), "csv");
-                    cachePath.mkdirs();
-                    File csvFile = new File(cachePath, "sky_predict_history_export.csv");
-                    FileOutputStream out = new FileOutputStream(csvFile);
-                    out.write(csvBuilder.toString().getBytes());
-                    out.close();
-
-                    android.net.Uri csvUri = androidx.core.content.FileProvider.getUriForFile(
-                            HistoryActivity.this,
-                            getPackageName() + ".fileprovider",
-                            csvFile
-                    );
-
-                    runOnUiThread(() -> {
-                        Intent sendIntent = new Intent();
-                        sendIntent.setAction(Intent.ACTION_SEND);
-                        sendIntent.putExtra(Intent.EXTRA_SUBJECT, "SkyPredict AI Weather Log History Export");
-                        sendIntent.putExtra(Intent.EXTRA_TEXT, "📊 Attached: SkyPredict AI Weather Prediction Log History CSV Export.");
-                        sendIntent.putExtra(Intent.EXTRA_STREAM, csvUri);
-                        sendIntent.setType("text/csv");
-                        sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-                        Intent shareIntent = Intent.createChooser(sendIntent, "Share Weather History CSV via");
-                        startActivity(shareIntent);
-                    });
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    runOnUiThread(() -> Toast.makeText(HistoryActivity.this, "Failed to export CSV: " + e.getMessage(), Toast.LENGTH_LONG).show());
                 }
+                File csvFile = new File(cachePath, "sky_predict_history_export.csv");
+                FileOutputStream out = new FileOutputStream(csvFile);
+                out.write(csvBuilder.toString().getBytes());
+                out.close();
+
+                Uri csvUri = FileProvider.getUriForFile(
+                        HistoryActivity.this,
+                        getPackageName() + ".fileprovider",
+                        csvFile
+                );
+
+                runOnUiThread(() -> {
+                    Intent sendIntent = new Intent();
+                    sendIntent.setAction(Intent.ACTION_SEND);
+                    sendIntent.putExtra(Intent.EXTRA_SUBJECT, "SkyPredict AI Weather Log History Export");
+                    sendIntent.putExtra(Intent.EXTRA_TEXT, "📊 Attached: SkyPredict AI Weather Prediction Log History CSV Export.");
+                    sendIntent.putExtra(Intent.EXTRA_STREAM, csvUri);
+                    sendIntent.setType("text/csv");
+                    sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                    Intent shareIntent = Intent.createChooser(sendIntent, "Share Weather History CSV via");
+                    startActivity(shareIntent);
+                });
+
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(HistoryActivity.this, "Failed to export CSV: " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
         }).start();
     }
 
     private void loadFullHistory() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                final List<WeatherRecord> records = weatherDao.getAllRecords();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        allRecordsList = records != null ? records : new ArrayList<>();
-                        displayHistoryList(allRecordsList);
-                    }
-                });
-            }
+        new Thread(() -> {
+            final List<WeatherRecord> records = weatherDao.getAllRecords();
+            runOnUiThread(() -> {
+                allRecordsList = Objects.requireNonNullElseGet(records, ArrayList::new);
+                displayHistoryList(allRecordsList);
+            });
         }).start();
     }
 
@@ -227,13 +211,10 @@ public class HistoryActivity extends AppCompatActivity {
                     record.getTemperature(), record.getHumidity(), record.getPredictedTemperature()));
             timestampTv.setText(sdf.format(new Date(record.getTimestamp())));
 
-            view.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(HistoryActivity.this, PredictionActivity.class);
-                    intent.putExtra(PredictionActivity.EXTRA_CITY, record.getCity());
-                    startActivity(intent);
-                }
+            view.setOnClickListener(v -> {
+                Intent intent = new Intent(HistoryActivity.this, PredictionActivity.class);
+                intent.putExtra(PredictionActivity.EXTRA_CITY, record.getCity());
+                startActivity(intent);
             });
 
             historyContainer.addView(view);
@@ -241,19 +222,13 @@ public class HistoryActivity extends AppCompatActivity {
     }
 
     private void clearHistory() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                weatherDao.deleteAll();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(HistoryActivity.this, R.string.history_cleared_toast, Toast.LENGTH_SHORT).show();
-                        allRecordsList.clear();
-                        loadFullHistory();
-                    }
-                });
-            }
+        new Thread(() -> {
+            weatherDao.deleteAll();
+            runOnUiThread(() -> {
+                Toast.makeText(HistoryActivity.this, R.string.history_cleared_toast, Toast.LENGTH_SHORT).show();
+                allRecordsList.clear();
+                loadFullHistory();
+            });
         }).start();
     }
 }

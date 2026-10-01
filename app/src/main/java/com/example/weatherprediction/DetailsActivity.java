@@ -1,12 +1,18 @@
 package com.example.weatherprediction;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import com.example.weatherprediction.ml.WeatherPredictor;
 import com.example.weatherpredictionapp.R;
 import com.github.mikephil.charting.charts.BarChart;
@@ -20,6 +26,8 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -33,11 +41,10 @@ public class DetailsActivity extends AppCompatActivity {
     private String selectedCity = "New York";
     private WeatherPredictor weatherPredictor;
 
-    private TextView citySubtitleText;
     private LineChart temperatureChart;
     private LineChart humidityPrecipChart;
     private BarChart precipBarChart;
-    private android.widget.ImageButton btnBackArrow;
+    private ImageButton btnBackArrow;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +66,7 @@ public class DetailsActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        citySubtitleText = findViewById(R.id.details_city_subtitle);
+        TextView citySubtitleText = findViewById(R.id.details_city_subtitle);
         temperatureChart = findViewById(R.id.temperature_chart);
         humidityPrecipChart = findViewById(R.id.humidity_precip_chart);
         precipBarChart = findViewById(R.id.precip_bar_chart);
@@ -199,64 +206,63 @@ public class DetailsActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        btnBackArrow.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
+        btnBackArrow.setOnClickListener(v -> finish());
 
         Button btnShareCharts = findViewById(R.id.btn_share_charts);
-        btnShareCharts.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                try {
-                    View rootLayout = findViewById(R.id.charts_root_layout);
-                    int totalHeight = rootLayout.getHeight();
-                    int totalWidth = rootLayout.getWidth();
+        btnShareCharts.setOnClickListener(v -> shareChartsImage());
+    }
 
-                    if (totalWidth <= 0 || totalHeight <= 0) {
-                        rootLayout.measure(
-                            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-                        );
-                        totalWidth = rootLayout.getMeasuredWidth();
-                        totalHeight = rootLayout.getMeasuredHeight();
-                        rootLayout.layout(0, 0, totalWidth, totalHeight);
-                    }
+    private void shareChartsImage() {
+        try {
+            View rootLayout = findViewById(R.id.charts_root_layout);
+            int totalHeight = rootLayout.getHeight();
+            int totalWidth = rootLayout.getWidth();
 
-                    android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(totalWidth, totalHeight, android.graphics.Bitmap.Config.ARGB_8888);
-                    android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
-                    rootLayout.draw(canvas);
+            if (totalWidth <= 0 || totalHeight <= 0) {
+                rootLayout.measure(
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                );
+                totalWidth = rootLayout.getMeasuredWidth();
+                totalHeight = rootLayout.getMeasuredHeight();
+                rootLayout.layout(0, 0, totalWidth, totalHeight);
+            }
 
-                    java.io.File cachePath = new java.io.File(getCacheDir(), "images");
-                    cachePath.mkdirs();
-                    java.io.File file = new java.io.File(cachePath, "weather_charts_" + System.currentTimeMillis() + ".png");
-                    java.io.FileOutputStream stream = new java.io.FileOutputStream(file);
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream);
-                    stream.close();
+            Bitmap bitmap = Bitmap.createBitmap(totalWidth, totalHeight, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            rootLayout.draw(canvas);
 
-                    android.net.Uri contentUri = androidx.core.content.FileProvider.getUriForFile(
-                            DetailsActivity.this,
-                            getPackageName() + ".fileprovider",
-                            file
-                    );
-
-                    Intent sendIntent = new Intent();
-                    sendIntent.setAction(Intent.ACTION_SEND);
-                    sendIntent.putExtra(Intent.EXTRA_SUBJECT, "SkyPredict AI Weather Trends & Charts - " + selectedCity);
-                    sendIntent.putExtra(Intent.EXTRA_TEXT, "📊 Temperature, Humidity & Rain Probability Trends for " + selectedCity + "\nPowered by SkyPredict AI!");
-                    sendIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
-                    sendIntent.setType("image/png");
-                    sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-                    Intent shareIntent = Intent.createChooser(sendIntent, "Share Weather Charts via");
-                    startActivity(shareIntent);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    android.widget.Toast.makeText(DetailsActivity.this, "Failed to share charts image: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+            File cachePath = new File(getCacheDir(), "images");
+            if (!cachePath.exists()) {
+                boolean dirCreated = cachePath.mkdirs();
+                if (!dirCreated) {
+                    Toast.makeText(this, "Failed to create directory for chart image", Toast.LENGTH_SHORT).show();
+                    return;
                 }
             }
-        });
+            File file = new File(cachePath, "weather_charts_" + System.currentTimeMillis() + ".png");
+            FileOutputStream stream = new FileOutputStream(file);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+            stream.close();
+
+            Uri contentUri = FileProvider.getUriForFile(
+                    DetailsActivity.this,
+                    getPackageName() + ".fileprovider",
+                    file
+            );
+
+            Intent sendIntent = new Intent();
+            sendIntent.setAction(Intent.ACTION_SEND);
+            sendIntent.putExtra(Intent.EXTRA_SUBJECT, "SkyPredict AI Weather Trends & Charts - " + selectedCity);
+            sendIntent.putExtra(Intent.EXTRA_TEXT, "📊 Temperature, Humidity & Rain Probability Trends for " + selectedCity + "\nPowered by SkyPredict AI!");
+            sendIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+            sendIntent.setType("image/png");
+            sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            Intent shareIntent = Intent.createChooser(sendIntent, "Share Weather Charts via");
+            startActivity(shareIntent);
+        } catch (Exception e) {
+            Toast.makeText(DetailsActivity.this, "Failed to share charts image: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 }

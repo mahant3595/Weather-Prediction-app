@@ -7,8 +7,8 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -41,7 +41,7 @@ public class HomeActivity extends AppCompatActivity {
     private Button btnViewPredictionCharts;
     private Button navHistoryBtn;
     private Button navSettingsBtn;
-    private android.widget.RadioGroup homeUnitRadioGroup;
+    private RadioGroup homeUnitRadioGroup;
     private android.widget.RadioButton homeRadioCelsius;
     private android.widget.RadioButton homeRadioFahrenheit;
     private com.google.android.material.card.MaterialCardView currentWeatherCard;
@@ -68,7 +68,7 @@ public class HomeActivity extends AppCompatActivity {
         "Chandigarh", "Mysore", "Gurgaon", "Gurugram", "Noida", "Bhubaneswar", "Thiruvananthapuram",
         "Dehradun", "Kochi", "Udaipur", "Shimla", "Ayodhya", "Rishikesh", "Haridwar", "Nainital",
         
-        // Famous International Cities (United States, Europe, Asia, Australia, Americas, Middle East, Africa)
+        // Famous International Cities
         "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio",
         "San Diego", "Dallas", "San Jose", "Austin", "San Francisco", "Seattle", "Miami", "Las Vegas",
         "London", "Manchester", "Birmingham", "Liverpool", "Edinburgh", "Paris", "Marseille", "Lyon",
@@ -133,7 +133,7 @@ public class HomeActivity extends AppCompatActivity {
         
         recentHistoryContainer = findViewById(R.id.recent_history_container);
 
-        android.widget.ArrayAdapter<String> autoAdapter = new android.widget.ArrayAdapter<>(
+        ArrayAdapter<String> autoAdapter = new ArrayAdapter<>(
                 this, android.R.layout.simple_dropdown_item_1line, WeatherPredictor.SUPPORTED_CITIES);
         citySearchInput.setAdapter(autoAdapter);
         citySearchInput.setThreshold(1);
@@ -179,43 +179,37 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        homeUnitRadioGroup.setOnCheckedChangeListener(new android.widget.RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(android.widget.RadioGroup group, int checkedId) {
-                android.content.SharedPreferences prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE);
-                android.content.SharedPreferences.Editor editor = prefs.edit();
-                if (checkedId == R.id.home_radio_fahrenheit) {
-                    editor.putString(SettingsActivity.KEY_UNIT, SettingsActivity.UNIT_FAHRENHEIT);
-                } else {
-                    editor.putString(SettingsActivity.KEY_UNIT, SettingsActivity.UNIT_CELSIUS);
-                }
-                editor.apply();
-                updateWeatherForCity(currentSelectedCity);
+        homeUnitRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            android.content.SharedPreferences prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE);
+            android.content.SharedPreferences.Editor editor = prefs.edit();
+            if (checkedId == R.id.home_radio_fahrenheit) {
+                editor.putString(SettingsActivity.KEY_UNIT, SettingsActivity.UNIT_FAHRENHEIT);
+            } else {
+                editor.putString(SettingsActivity.KEY_UNIT, SettingsActivity.UNIT_CELSIUS);
             }
+            editor.apply();
+            updateWeatherForCity(currentSelectedCity);
         });
 
-        searchButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                final String city = citySearchInput.getText().toString().trim();
-                if (!city.isEmpty()) {
-                    if (WeatherPredictor.isValidCity(city)) {
-                        updateWeatherForCity(city);
-                    } else {
-                        new androidx.appcompat.app.AlertDialog.Builder(HomeActivity.this)
-                                .setTitle("City Not Available")
-                                .setMessage("Your city \"" + city + "\" not available, please report it.")
-                                .setPositiveButton("Report Now", (dialog, which) -> {
-                                    Intent intent = new Intent(HomeActivity.this, SettingsActivity.class);
-                                    intent.putExtra(SettingsActivity.EXTRA_MISSING_CITY, city);
-                                    startActivity(intent);
-                                })
-                                .setNegativeButton("Cancel", null)
-                                .show();
-                    }
+        searchButton.setOnClickListener(v -> {
+            final String city = citySearchInput.getText().toString().trim();
+            if (!city.isEmpty()) {
+                if (WeatherPredictor.isValidCity(city)) {
+                    updateWeatherForCity(city);
                 } else {
-                    Toast.makeText(HomeActivity.this, "Please enter a city name", Toast.LENGTH_SHORT).show();
+                    new androidx.appcompat.app.AlertDialog.Builder(HomeActivity.this)
+                            .setTitle("City Not Available")
+                            .setMessage("Your city \"" + city + "\" not available, please report it.")
+                            .setPositiveButton("Report Now", (dialog, which) -> {
+                                Intent intent = new Intent(HomeActivity.this, SettingsActivity.class);
+                                intent.putExtra(SettingsActivity.EXTRA_MISSING_CITY, city);
+                                startActivity(intent);
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
                 }
+            } else {
+                Toast.makeText(HomeActivity.this, "Please enter a city name", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -232,45 +226,29 @@ public class HomeActivity extends AppCompatActivity {
             public void onNothingSelected(AdapterView<?> parent) {
             }
         });
-        btnViewPredictionCharts.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(HomeActivity.this, PredictionActivity.class);
-                intent.putExtra(PredictionActivity.EXTRA_CITY, currentSelectedCity);
-                startActivity(intent);
-            }
+
+        btnViewPredictionCharts.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, PredictionActivity.class);
+            intent.putExtra(PredictionActivity.EXTRA_CITY, currentSelectedCity);
+            startActivity(intent);
         });
 
-        navHistoryBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(HomeActivity.this, HistoryActivity.class);
-                startActivity(intent);
-            }
+        navHistoryBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, HistoryActivity.class);
+            startActivity(intent);
         });
 
-        navSettingsBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(HomeActivity.this, SettingsActivity.class);
-                startActivity(intent);
-            }
+        navSettingsBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, SettingsActivity.class);
+            startActivity(intent);
         });
 
         Button btnShareHome = findViewById(R.id.btn_share_home);
-        btnShareHome.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                shareCurrentWeather();
-            }
-        });
+        btnShareHome.setOnClickListener(v -> shareCurrentWeather());
 
-        swipeRefreshLayout.setOnRefreshListener(new androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                updateWeatherForCity(currentSelectedCity);
-                swipeRefreshLayout.setRefreshing(false);
-            }
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            updateWeatherForCity(currentSelectedCity);
+            swipeRefreshLayout.setRefreshing(false);
         });
     }
 
@@ -358,12 +336,12 @@ public class HomeActivity extends AppCompatActivity {
 
         // Update current weather UI
         currentCityText.setText(getString(R.string.city_label, city));
-        currentTempText.setText("Temperature: " + formatTemperature(currentResult.temperature));
+        currentTempText.setText(String.format(Locale.getDefault(), "Temperature: %s", formatTemperature(currentResult.temperature)));
         currentHumidityText.setText(getString(R.string.humidity_label_value, currentResult.humidity));
         currentPrecipText.setText(getString(R.string.precip_label_value, (int) Math.round(currentResult.precipitationProbability * 100)));
 
         // Update predicted weather UI
-        predictedTempText.setText("Predicted Temp: " + formatTemperature(forecastResult.temperature));
+        predictedTempText.setText(String.format(Locale.getDefault(), "Predicted Temp: %s", formatTemperature(forecastResult.temperature)));
         predictedHumidityText.setText(getString(R.string.predicted_humidity_label, forecastResult.humidity));
         predictedPrecipText.setText(getString(R.string.predicted_precip_label, (int) Math.round(forecastResult.precipitationProbability * 100)));
 
@@ -379,12 +357,9 @@ public class HomeActivity extends AppCompatActivity {
                 forecastResult.temperature, forecastResult.humidity, forecastResult.precipitationProbability
         );
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                weatherDao.insert(record);
-                loadHistory();
-            }
+        new Thread(() -> {
+            weatherDao.insert(record);
+            loadHistory();
         }).start();
     }
 
@@ -401,17 +376,9 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void loadHistory() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                final List<WeatherRecord> records = weatherDao.getAllRecords();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        displayHistory(records);
-                    }
-                });
-            }
+        new Thread(() -> {
+            final List<WeatherRecord> records = weatherDao.getAllRecords();
+            runOnUiThread(() -> displayHistory(records));
         }).start();
     }
 
@@ -432,7 +399,7 @@ public class HomeActivity extends AppCompatActivity {
                     if (seenCities.size() > 5) break;
 
                     Button chip = new Button(this);
-                    chip.setText("📍 " + rec.getCity());
+                    chip.setText(String.format("📍 %s", rec.getCity()));
                     chip.setTextSize(11f);
                     chip.setTextColor(android.graphics.Color.WHITE);
 
@@ -454,7 +421,7 @@ public class HomeActivity extends AppCompatActivity {
         }
 
         // Only show up to 5 recent items to avoid overcrowding
-        int limit = Math.min(records.size(), 5);
+        int limit = records != null ? Math.min(records.size(), 5) : 0;
         for (int i = 0; i < limit; i++) {
             final WeatherRecord record = records.get(i);
             View view = inflater.inflate(R.layout.item_recent_city, recentHistoryContainer, false);
@@ -469,12 +436,7 @@ public class HomeActivity extends AppCompatActivity {
             SimpleDateFormat timeSdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
             timestampTv.setText(timeSdf.format(new Date(record.getTimestamp())));
             
-            view.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    updateWeatherForCity(record.getCity());
-                }
-            });
+            view.setOnClickListener(v -> updateWeatherForCity(record.getCity()));
             
             recentHistoryContainer.addView(view);
         }
