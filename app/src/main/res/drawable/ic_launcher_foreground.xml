@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group
+        android:scaleX="0.9"
+        android:scaleY="0.9"
+        android:translateX="3.2"
+        android:translateY="3.2">
+
+        <!-- Sun rays -->
+        <path
+            android:fillColor="#FFB300"
+            android:pathData="M54,12L54,18M54,78L54,84M24.34,24.34L29.7,29.7M78.3,78.3L83.66,83.66M12,54L18,54M78,54L84,54M24.34,83.66L29.7,78.3M78.3,29.7L83.66,24.34"
+            android:strokeColor="#FFB300"
+            android:strokeWidth="5"
+            android:strokeLineCap="round" />
+
+        <!-- Sun core -->
+        <path
+            android:fillColor="#FFC107"
+            android:pathData="M54,48m-20,0a20,20 0 1,0 40,0a20,20 0 1,0 -40,0" />
+
+        <!-- Cloud body -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M39,74 C31,74 25,67 25,59 C25,50 30,44 37,42 C40,35 48,30 58,33 C67,36 73,44 71,53 C77,53 83,59 83,67 C83,74 77,74 71,74 Z" />
+
+        <path
+            android:strokeColor="#E0E0E0"
+            android:strokeWidth="2"
+            android:pathData="M39,74 C31,74 25,67 25,59 C25,50 30,44 37,42 C40,35 48,30 58,33 C67,36 73,44 71,53 C77,53 83,59 83,67 C83,74 77,74 71,74 Z" />
+
+        <!-- Raindrops -->
+        <path
+            android:fillColor="#2196F3"
+            android:pathData="M42,78 Q39,83 42,88 Q45,83 42,78 Z" />
+        <path
+            android:fillColor="#2196F3"
+            android:pathData="M54,80 Q51,85 54,90 Q57,85 54,80 Z" />
+        <path
+            android:fillColor="#2196F3"
+            android:pathData="M66,78 Q63,83 66,88 Q69,83 66,78 Z" />
+    </group>
+</vector>

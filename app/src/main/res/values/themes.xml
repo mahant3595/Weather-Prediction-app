@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.WeatherPredictionApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#1E1E2C</item>
+        <item name="colorPrimaryVariant">#14141F</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+    </style>
+</resources>
