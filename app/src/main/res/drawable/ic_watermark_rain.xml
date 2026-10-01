@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Cloud -->
+    <path
+        android:fillColor="#90CAF9"
+        android:pathData="M18,38C13,38 10,34 10,29C10,24 13,20 18,19C20,14 26,11 32,13C38,15 42,20 41,26C45,26 48,29 48,33C48,38 45,38 41,38Z"/>
+    <!-- Raindrops -->
+    <path
+        android:fillColor="#2196F3"
+        android:pathData="M22,44 Q20,48 22,51 Q24,48 22,44 Z"/>
+    <path
+        android:fillColor="#2196F3"
+        android:pathData="M32,46 Q30,50 32,53 Q34,50 32,46 Z"/>
+    <path
+        android:fillColor="#2196F3"
+        android:pathData="M42,44 Q40,48 42,51 Q44,48 42,44 Z"/>
+</vector>
